@@ -1,8 +1,11 @@
 package com.myproject.controller;
 
+import com.myproject.dto.UserBasicDTO;
+import com.myproject.dto.UserDetailDTO;
 import com.myproject.model.User;
 import com.myproject.service.UserService;
 import com.myproject.exception.UserNotFoundException;
+import com.myproject.mapper.UserMapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -21,6 +24,7 @@ import java.util.List;
 public class UserController {
 
     private final UserService userService;
+    private final UserMapper userMapper;
 
     @GetMapping
     @Operation(summary = "Get all users", description = "Returns a list of all users in the system.")
@@ -28,8 +32,9 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved all users"),
             @ApiResponse(responseCode = "500", description = "Internal server error")
     })
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
+    public List<UserBasicDTO> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        return userMapper.toUserBasicDTOs(users); // Map to DTO
     }
 
     @GetMapping("/{id}")
@@ -38,8 +43,12 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Successfully retrieved the user"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
-        return ResponseEntity.ok(userService.getUserById(id));
+    public ResponseEntity<UserDetailDTO> getUserById(@PathVariable Long id) {
+        User user = userService.getUserById(id);
+        if (user == null) {
+            throw new UserNotFoundException("User with ID " + id + " not found");
+        }
+        return ResponseEntity.ok(userMapper.toUserDetailDTO(user)); // Map to DTO
     }
 
     @PostMapping
@@ -48,8 +57,9 @@ public class UserController {
             @ApiResponse(responseCode = "201", description = "Successfully created the user"),
             @ApiResponse(responseCode = "400", description = "Invalid user data")
     })
-    public ResponseEntity<User> createUser(@RequestBody User user) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.createUser(user));
+    public ResponseEntity<UserDetailDTO> createUser(@RequestBody User user) {
+        User createdUser = userService.createUser(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(userMapper.toUserDetailDTO(createdUser)); // Map to DTO
     }
 
     @PutMapping("/{id}")
@@ -58,8 +68,9 @@ public class UserController {
             @ApiResponse(responseCode = "200", description = "Successfully updated the user"),
             @ApiResponse(responseCode = "404", description = "User not found")
     })
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user) {
-        return ResponseEntity.ok(userService.updateUser(id, user));
+    public ResponseEntity<UserDetailDTO> updateUser(@PathVariable Long id, @RequestBody User user) {
+        User updatedUser = userService.updateUser(id, user);
+        return ResponseEntity.ok(userMapper.toUserDetailDTO(updatedUser)); // Map to DTO
     }
 
     @DeleteMapping("/{id}")
